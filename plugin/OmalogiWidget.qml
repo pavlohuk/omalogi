@@ -40,14 +40,20 @@ Panel {
         onExited: {
             try {
                 var result = JSON.parse(batteryOut.text)
-                if (result.ok && !result.busy) root.battery = result.batteries.length ? result.batteries[0] : null
-            } catch (e) { root.battery = null }
+                if (!result.ok || result.busy) throw new Error("not read")
+                root.battery = result.batteries.length ? result.batteries[0] : null
+            } catch (e) {
+                // A transaction or a waking mouse: keep the last level and try again soon.
+                batteryRetry.restart()
+            }
         }
     }
+    function pollBattery() { if (!batteryPoll.running) batteryPoll.running = true }
     Timer {
         interval: 5 * 60 * 1000; repeat: true; running: true; triggeredOnStart: true
-        onTriggered: if (!batteryPoll.running) batteryPoll.running = true
+        onTriggered: root.pollBattery()
     }
+    Timer { id: batteryRetry; interval: 30 * 1000; onTriggered: root.pollBattery() }
     OmalogiPanel { id: panel; ownerWidget: root; anchorItem: button; bar: root.bar }
     // Monitor-scoped UI navigation and geometry for local diagnostics/captures.
     IpcHandler {
