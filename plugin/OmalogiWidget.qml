@@ -14,22 +14,32 @@ Panel {
     implicitHeight: button.implicitHeight
     // The persistent panel owns the process; hiding only releases the popup input layer.
     function close() { controller.hide() }
-    // First connected MX Master's battery, or null while unknown or asleep.
+    // First connected MX Master's battery, or null while unknown or asleep. The panel shows
+    // it; the bar stays an icon and a notification speaks up only when the level is low.
     property var battery: null
-    readonly property bool batteryLow: !!battery && battery.level <= 15 && !battery.charging
+    readonly property int lowLevel: 10
+    property bool lowNotified: false
     function batteryText() {
         if (!battery) return ""
         var state = battery.charging ? " · charging" : battery.full ? " · full" : ""
-        return " · " + (battery.approximate ? "about " : "") + battery.level + "%" + state
+        return (battery.approximate ? "about " : "") + battery.level + "%" + state
     }
+    function checkLow() {
+        if (!battery) return
+        // Re-arm only clearly above the threshold, so a level wavering at 9–10% notifies once.
+        if (battery.charging || battery.level >= lowLevel + 5) { lowNotified = false; return }
+        if (battery.level >= lowLevel || lowNotified) return
+        lowNotified = true
+        notify.command = ["notify-send", "-u", "critical", "-a", "Omalogi", "-i", "input-mouse",
+            battery.name + " battery low", battery.level + "% left. Charge the mouse soon."]
+        notify.running = true
+    }
+    Process { id: notify }
     BarIconButton {
         id: button
         bar: root.bar
         text: "󰍽"
-        labelText: root.battery && !vertical ? root.battery.level + "%" : ""
-        slotSize: Style.bar.iconSlot * (labelText !== "" ? 2 : 1)
-        foreground: root.batteryLow && root.bar ? root.bar.urgent : (root.bar ? root.bar.barForeground : Color.foreground)
-        tooltipText: (root.battery ? root.battery.name : "Omalogi") + root.batteryText() + " · configure"
+        tooltipText: "Omalogi · configure MX Master"
         onPressed: function(button) { if (button === Qt.LeftButton) root.toggle() }
     }
     // One HID++ battery request per poll; the CLI skips while a transaction owns the mouse.
@@ -42,6 +52,7 @@ Panel {
                 var result = JSON.parse(batteryOut.text)
                 if (!result.ok || result.busy) throw new Error("not read")
                 root.battery = result.batteries.length ? result.batteries[0] : null
+                root.checkLow()
             } catch (e) {
                 // A transaction or a waking mouse: keep the last level and try again soon.
                 batteryRetry.restart()

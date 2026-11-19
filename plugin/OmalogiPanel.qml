@@ -140,6 +140,8 @@ Item {
                 root.actionOptions = result.actions.map(function(a) { return {value:a.id,label:a.label} })
                 root.events = result.events; root.applied = result.applied; root.daemon = result.daemon
                 root.recoveryRequired = result.pending; root.error = result.pending
+                // Each open refreshes the battery, after status releases the operation lock.
+                root.ownerWidget.pollBattery()
                 root.message = result.pending ? "Incomplete operation · click Restore" : (root.applied ? "Profile active · event capture " + (root.daemon ? "connected" : "stopped") : "Original settings · changes are saved automatically")
             } catch (e) { root.error = true; root.message = String(e.message || e) }
             if (root.dirty) autoApply.restart()
@@ -208,6 +210,15 @@ Item {
                         spacing: Style.spacing.labelGap
                         Text { text: root.device ? root.device.name : "Omalogi"; color: Color.popups.text; font.family: Style.font.family; font.pixelSize: Style.font.heading; font.bold: true }
                         Text { text: root.connection; color: root.secondary; font.family: Style.font.family; font.pixelSize: Style.font.caption }
+                    }
+                    Text {
+                        id: batteryLabel
+                        readonly property var battery: root.ownerWidget.battery
+                        visible: !!battery
+                        Layout.alignment: Qt.AlignRight | Qt.AlignTop
+                        text: "Battery " + root.ownerWidget.batteryText()
+                        color: battery && battery.level < root.ownerWidget.lowLevel && !battery.charging ? Color.urgent : root.secondary
+                        font.family: Style.font.family; font.pixelSize: Style.font.caption
                     }
                 }
                 RowLayout {

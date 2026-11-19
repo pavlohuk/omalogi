@@ -26,7 +26,9 @@ elif op=='apply':
  (root/'profile.json').write_text(json.dumps(c))
  print(json.dumps({'ok':True,'config':c,'message':'Simulated verified'}))
 elif op=='battery':
- print(json.dumps({'ok':True,'busy':False,'batteries':[{'id':'TEST1234','name':'MX Master 3S','transport':'Bluetooth','level':12,'approximate':False,'charging':False,'full':False}]}))
+ print(json.dumps({'ok':True,'busy':False,'batteries':[{'id':'TEST1234','name':'MX Master 3S','transport':'Bluetooth','level':8,'approximate':False,'charging':False,'full':False}]}))
+elif op=='notify':
+ (root/'notified').write_text(json.dumps(sys.argv[2:]))
 else: print('{"ok":true,"events":[]}')
 '''
 QML = '''import QtQuick
@@ -69,8 +71,11 @@ ShellRoot {
             var p = test.panel
             if (test.stage === 0) {
                 if (!widget.battery) return
-                test.check(widget.batteryLow, "low battery switches to the urgent color")
-                test.check(widget.children[0].labelText === "12%", "bar label shows the battery level: " + widget.children[0].labelText)
+                test.check(widget.children[0].labelText === "", "bar stays an icon without a percentage")
+                test.check(widget.lowNotified, "battery below 10% sends a notification")
+                test.check(widget.batteryText() === "8%", "panel battery text: " + widget.batteryText())
+                widget.checkLow()
+                test.check(widget.lowNotified, "the low-battery notification is sent once")
                 test.panel = widget.children[1]; widget.open(); test.stage = 1
             } else if (test.stage === 1 && !p.busy && p.profile) {
                 test.check(p.connection === "Bluetooth · TEST1234 · Connected", "header names the live transport")
@@ -113,6 +118,7 @@ with tempfile.TemporaryDirectory(prefix="omalogi-panel-test-") as temp:
         text = src.read_text()
         if src.name in ("OmalogiPanel.qml", "OmalogiWidget.qml"):
             text = text.replace('Quickshell.env("HOME") + "/.local/bin/omalogi"', json.dumps(str(base / "fake-cli")))
+            text = text.replace('"notify-send", ', json.dumps(str(base / "fake-cli")) + ', "notify", ')
         (base / "plugin" / src.name).write_text(text)
     (base / "fake-cli").write_text(FAKE)
     (base / "fake-cli").chmod(0o755)
@@ -133,7 +139,9 @@ with tempfile.TemporaryDirectory(prefix="omalogi-panel-test-") as temp:
         raise AssertionError(output)
     verdict = json.loads(lines[-1])
     assert result.returncode == 0 and verdict["ok"], (verdict, output)
+    notified = json.loads((base / "notified").read_text())
+    assert "MX Master 3S battery low" in notified and "8% left. Charge the mouse soon." in notified, notified
     calls = [json.loads(line) for line in (base / "calls.jsonl").read_text().splitlines()]
     assert [c["hardware"]["dpi"] for c in calls] == ["3200", "1000", "1050", "1050"], calls
     assert verdict["closed"] and verdict["finalDpi"] == "1050", verdict
-    print("PASS: battery label, debounce, latest queued edit, busy dismissal/reopen, background completion, failure without retry loop and explicit retry (actual QML + simulated CLI).")
+    print("PASS: battery in panel, low-battery notification, debounce, latest queued edit, busy dismissal/reopen, background completion, failure without retry loop and explicit retry (actual QML + simulated CLI).")
