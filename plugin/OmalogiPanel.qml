@@ -208,17 +208,19 @@ Item {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Style.spacing.labelGap
-                        Text { text: root.device ? root.device.name : "Omalogi"; color: Color.popups.text; font.family: Style.font.family; font.pixelSize: Style.font.heading; font.bold: true }
+                        RowLayout {
+                            spacing: Style.spacing.panelGap
+                            Text { id: deviceName; text: root.device ? root.device.name : "Omalogi"; color: Color.popups.text; font.family: Style.font.family; font.pixelSize: Style.font.heading; font.bold: true }
+                            Text {
+                                readonly property var battery: root.ownerWidget.battery
+                                visible: !!battery
+                                Layout.alignment: Qt.AlignBaseline
+                                text: "Battery " + root.ownerWidget.batteryText()
+                                color: battery && battery.level < root.ownerWidget.lowLevel && !battery.charging ? Color.urgent : root.secondary
+                                font.family: Style.font.family; font.pixelSize: Style.font.caption
+                            }
+                        }
                         Text { text: root.connection; color: root.secondary; font.family: Style.font.family; font.pixelSize: Style.font.caption }
-                    }
-                    Text {
-                        id: batteryLabel
-                        readonly property var battery: root.ownerWidget.battery
-                        visible: !!battery
-                        Layout.alignment: Qt.AlignRight | Qt.AlignTop
-                        text: "Battery " + root.ownerWidget.batteryText()
-                        color: battery && battery.level < root.ownerWidget.lowLevel && !battery.charging ? Color.urgent : root.secondary
-                        font.family: Style.font.family; font.pixelSize: Style.font.caption
                     }
                 }
                 RowLayout {
