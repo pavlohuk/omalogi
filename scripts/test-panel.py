@@ -25,6 +25,8 @@ elif op=='apply':
   (root/'failed-once').touch();print(json.dumps({'ok':False,'error':'Simulated write failure, rollback complete'}));sys.exit(1)
  (root/'profile.json').write_text(json.dumps(c))
  print(json.dumps({'ok':True,'config':c,'message':'Simulated verified'}))
+elif op=='battery':
+ print(json.dumps({'ok':True,'busy':False,'batteries':[{'id':'TEST1234','name':'MX Master 3S','transport':'Bluetooth','level':12,'approximate':False,'charging':False,'full':False}]}))
 else: print('{"ok":true,"events":[]}')
 '''
 QML = '''import QtQuick
@@ -66,6 +68,9 @@ ShellRoot {
         onTriggered: {
             var p = test.panel
             if (test.stage === 0) {
+                if (!widget.battery) return
+                test.check(widget.batteryLow, "low battery switches to the urgent color")
+                test.check(widget.children[0].labelText === "12%", "bar label shows the battery level: " + widget.children[0].labelText)
                 test.panel = widget.children[1]; widget.open(); test.stage = 1
             } else if (test.stage === 1 && !p.busy && p.profile) {
                 test.check(p.connection === "Bluetooth · TEST1234 · Connected", "header names the live transport")
@@ -106,7 +111,7 @@ with tempfile.TemporaryDirectory(prefix="omalogi-panel-test-") as temp:
     (base / "plugin").mkdir()
     for src in (ROOT / "plugin").glob("*.qml"):
         text = src.read_text()
-        if src.name == "OmalogiPanel.qml":
+        if src.name in ("OmalogiPanel.qml", "OmalogiWidget.qml"):
             text = text.replace('Quickshell.env("HOME") + "/.local/bin/omalogi"', json.dumps(str(base / "fake-cli")))
         (base / "plugin" / src.name).write_text(text)
     (base / "fake-cli").write_text(FAKE)
@@ -131,4 +136,4 @@ with tempfile.TemporaryDirectory(prefix="omalogi-panel-test-") as temp:
     calls = [json.loads(line) for line in (base / "calls.jsonl").read_text().splitlines()]
     assert [c["hardware"]["dpi"] for c in calls] == ["3200", "1000", "1050", "1050"], calls
     assert verdict["closed"] and verdict["finalDpi"] == "1050", verdict
-    print("PASS: debounce, latest queued edit, busy dismissal/reopen, background completion, failure without retry loop and explicit retry (actual QML + simulated CLI).")
+    print("PASS: battery label, debounce, latest queued edit, busy dismissal/reopen, background completion, failure without retry loop and explicit retry (actual QML + simulated CLI).")
