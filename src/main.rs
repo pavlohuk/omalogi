@@ -25,6 +25,8 @@ enum Commands {
     },
     /// Restore previous settings and rules
     Restore,
+    /// Battery level of connected mice, as JSON
+    Battery,
     /// Events observed by Solaar (manual events are labeled separately)
     Events,
     /// Invoked by Solaar rules
@@ -64,6 +66,7 @@ fn execute(cli: Cli) -> Result<Value, String> {
             &std::env::current_exe().map_err(|e| e.to_string())?,
         ),
         Commands::Restore => engine.restore(),
+        Commands::Battery => engine.battery(),
         Commands::Events => Ok(json!({"ok":true,"events":engine.events()?})),
         Commands::Trigger { event, manual } => engine.trigger(&event, manual),
         Commands::Panel => {

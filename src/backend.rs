@@ -11,6 +11,7 @@ use std::{
 
 pub const SERVICE: &str = "omalogi-solaar.service";
 const CLI: &str = include_str!("../scripts/solaar-cli.py");
+const BATTERY: &str = include_str!("../scripts/solaar-battery.py");
 // When it starts, or when a mouse connects, Solaar scans the device's features and replays
 // its settings: about three seconds of HID++ replies on the node a query would share.
 // Systemd reports the start in whole seconds, so up to one second of this is rounding.
@@ -312,6 +313,24 @@ pub fn discover() -> Result<Vec<Device>, String> {
         );
     }
     Ok(result)
+}
+
+/// Battery of each connected MX Master. Reads only, one request per mouse.
+pub fn battery() -> Result<serde_json::Value, String> {
+    settle();
+    let text = run("python3", &["-c", BATTERY], None)
+        .map_err(|e| e.replacen("python3: ", "solaar: ", 1))?;
+    parse_battery(&text)
+}
+
+pub fn parse_battery(text: &str) -> Result<serde_json::Value, String> {
+    // Solaar logs warnings of its own; the report is the last line.
+    let line = text
+        .lines()
+        .rev()
+        .find(|l| l.starts_with('['))
+        .unwrap_or("[]");
+    serde_json::from_str(line).map_err(|e| format!("Unreadable battery report: {e}"))
 }
 
 pub fn set(id: &str, key: &str, value: &str) -> Result<(), String> {

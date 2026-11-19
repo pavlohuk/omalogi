@@ -466,6 +466,14 @@ impl Engine {
             "daemon":self.daemon_active(),"events":self.events()?}),
         )
     }
+    /// Battery levels for the bar. While a transaction owns the mouse, skip instead of
+    /// waiting: a second process on the same HID++ node reads the other's replies.
+    pub fn battery(&self) -> Result<Value, String> {
+        let Some(_lock) = self.paths.try_lock()? else {
+            return Ok(json!({"ok":true,"busy":true,"batteries":[]}));
+        };
+        Ok(json!({"ok":true,"busy":false,"batteries":backend::battery()?}))
+    }
     pub fn events(&self) -> Result<Value, String> {
         Ok(storage::read(&self.paths.file("events.json")).unwrap_or_else(|_| json!([])))
     }

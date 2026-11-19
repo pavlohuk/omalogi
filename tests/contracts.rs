@@ -262,3 +262,15 @@ fn legacy_rules_can_be_migrated_and_mixed_markers_are_rejected() {
     );
     assert!(rules::split(&format!("{block}{}{}", rules::BEGIN, rules::END)).is_err());
 }
+
+#[test]
+fn battery_report_skips_solaar_warnings() {
+    let text = "rules cannot access modifier keys in Wayland\n\
+        [{\"id\": \"6ABAE8FC\", \"name\": \"MX Master 4\", \"transport\": \"Bolt\", \"level\": 55, \
+        \"approximate\": false, \"charging\": false, \"full\": false}]\n";
+    let report = backend::parse_battery(text).unwrap();
+    assert_eq!(report[0]["level"], 55);
+    assert_eq!(report[0]["transport"], "Bolt");
+    assert_eq!(backend::parse_battery("").unwrap(), serde_json::json!([]));
+    assert!(backend::parse_battery("[not json").is_err());
+}
