@@ -66,7 +66,7 @@ class Installation:
         old = self.receipt(self.legacy / "install.json" if migrating else self.app / "install.json",
                            self.legacy_paths if migrating else self.allowed)
         if not self.native and (self.plugin / ".git").exists():
-            raise ValueError("Ejecuta el instalador desde el checkout del plugin instalado para conservar sus actualizaciones Git")
+            raise ValueError("Run the installer from the installed plugin checkout to keep its Git updates")
         if self.native and (old.get("pluginMode") == "copy"):
             raise ValueError("The record belongs to a source installation; reinstall from the original checkout")
         targets = self.backend_paths | (set() if self.native else self.plugin_paths)

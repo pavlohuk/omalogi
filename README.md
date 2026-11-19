@@ -20,7 +20,7 @@ Preview rendered with simulated device data in the native Omarchy components.
 - Queued automatic application; the panel can close while changes finish in the background.
 - Selective persistence, preservation of foreign Solaar rules, rollback and original-state restoration.
 
-The panel and documentation are initially in Spanish. [Detailed usage in Spanish](docs/USAGE.es.md).
+The panel is in English. Detailed usage: [English](docs/USAGE.md) · [Spanish](docs/USAGE.es.md). Internal design notes (`DESIGN.md`, `PRODUCT.md`, `MVP_SCOPE.md`, `UI_BRIEF.md`) are in Spanish.
 
 ## Install from Omarchy Plugins
 
